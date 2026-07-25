@@ -1,14 +1,17 @@
 package org.umg.rest;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 public class ConversorController {
-    
+
     private static final Map<String, Double> TASAS_RESPECTO_USD = new HashMap<>();
 
     static {
@@ -18,7 +21,7 @@ public class ConversorController {
     }
 
     @GetMapping("/api/convertir")
-    public Map<String, Object> convertir(
+    public ResponseEntity<Map<String, Object>> convertir(
             @RequestParam double monto,
             @RequestParam String monedaOrigen,
             @RequestParam String monedaDestino
@@ -28,9 +31,16 @@ public class ConversorController {
 
         Map<String, Object> respuesta = new HashMap<>();
 
+        // Validación: monto no puede ser negativo
+        if (monto < 0) {
+            respuesta.put("error", "El monto no puede ser negativo");
+            return ResponseEntity.badRequest().body(respuesta);
+        }
+
+        // Validación: monedas soportadas
         if (!TASAS_RESPECTO_USD.containsKey(origen) || !TASAS_RESPECTO_USD.containsKey(destino)) {
             respuesta.put("error", "Moneda no soportada. Use: USD, GTQ o EUR");
-            return respuesta;
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(respuesta);
         }
 
         double montoEnUsd = monto / TASAS_RESPECTO_USD.get(origen);
@@ -42,6 +52,6 @@ public class ConversorController {
         respuesta.put("monedaDestino", destino);
         respuesta.put("montoConvertido", montoConvertido);
 
-        return respuesta;
+        return ResponseEntity.ok(respuesta);
     }
 }
